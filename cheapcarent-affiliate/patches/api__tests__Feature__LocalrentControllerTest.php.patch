@@ -1,0 +1,54 @@
+--- a/api/tests/Feature/LocalrentControllerTest.php
++++ b/api/tests/Feature/LocalrentControllerTest.php
+@@ -4,6 +4,7 @@
+ 
+ use Illuminate\Support\Facades\Cache;
+ use Illuminate\Support\Facades\Http;
++use Illuminate\Support\Carbon;
+ use Tests\TestCase;
+ 
+ class LocalrentControllerTest extends TestCase
+@@ -15,6 +16,7 @@
+     {
+         parent::setUp();
+ 
++        Carbon::setTestNow('2026-08-17 10:00:00');
+         $this->withoutMiddleware();
+         $this->originalStoragePath = app()->storagePath();
+         $this->temporaryStoragePath = sys_get_temp_dir() . '/cheapcar-localrent-' . uniqid();
+@@ -33,6 +35,7 @@
+ 
+     protected function tearDown(): void
+     {
++        Carbon::setTestNow();
+         app()->useStoragePath($this->originalStoragePath);
+         @unlink($this->temporaryStoragePath . '/app/localrent_cities.json');
+         @rmdir($this->temporaryStoragePath . '/app');
+@@ -54,6 +57,10 @@
+                 'cars' => [[
+                     'id' => 105323,
+                     'full_name' => 'Toyota Aygo',
++                    'supplier_name' => 'Test Rental Company',
++                    'rental_company' => ['name' => 'Test Rental Company'],
++                    'company' => 'Test Rental Company',
++                    'agency_name' => 'Test Rental Company',
+                     'url' => '/en/spain/?car_id=105323',
+                     'enhanced_image_title_url' => 'https://img.example.test/aygo.jpg',
+                     'day_price_cents' => 3409,
+@@ -93,6 +100,16 @@
+             ->assertJsonPath('data.0.badges.0.code', 'new_vehicle')
+             ->assertJsonPath('data.0.badges.2.code', 'instant_booking');
+ 
++        $publicCar = $response->json('data.0');
++        $this->assertSame([
++            'id', 'provider', 'providerLabel', 'externalId', 'externalUrl',
++            'brand', 'model', 'price', 'totalPrice', 'currency', 'discountPrice',
++            'photos', 'photoVerified', 'seats', 'transmission', 'year',
++            'orSimilar', 'badges', 'rentalTerms', 'deposit', 'insuranceOptions',
++            'location', 'coords',
++        ], array_keys($publicCar));
++        $this->assertStringNotContainsString('Test Rental Company', json_encode($publicCar));
++
+         Http::assertSent(function ($request) {
+             parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+ 

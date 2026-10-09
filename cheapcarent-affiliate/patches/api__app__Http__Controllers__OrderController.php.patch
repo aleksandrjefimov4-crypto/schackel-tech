@@ -1,0 +1,35 @@
+--- a/api/app/Http/Controllers/OrderController.php
++++ b/api/app/Http/Controllers/OrderController.php
+@@ -154,6 +154,7 @@
+             'customer.phone' => ['required', 'string', 'min:6', 'max:40'],
+             'additions' => ['sometimes', 'array'],
+             'additions.*.id' => ['required', 'string', 'distinct', 'exists:additions,id'],
++            'affiliate_click_id' => ['nullable', 'uuid'],
+         ];
+ 
+         if ($isCollection) {
+@@ -320,6 +321,24 @@
+                 "total" => $customerTotal,
+             ]);
+ 
++            if (!empty($data['affiliate_click_id'])) {
++                $click = DB::table('affiliate_clicks as click')
++                    ->join('affiliate_partners as partner', 'partner.id', '=', 'click.affiliate_partner_id')
++                    ->where('click.id', $data['affiliate_click_id'])
++                    ->where('partner.status', 'approved')
++                    ->where('click.created_at', '>=', now()->subDays(30))
++                    ->where('click.created_at', '<=', now())
++                    ->select('click.id', 'click.affiliate_partner_id')->first();
++                if ($click) {
++                    DB::table('affiliate_order_attributions')->insert([
++                        'affiliate_partner_id' => $click->affiliate_partner_id,
++                        'affiliate_click_id' => $click->id,
++                        'order_id' => $order->id,
++                        'created_at' => now(),
++                    ]);
++                }
++            }
++
+             $order->additions()->sync($additions);
+ 
+             $productName = $isCollection ? $product->name : $data['product']['brand'] . " " . $data['product']['model'];
