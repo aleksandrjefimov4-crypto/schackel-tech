@@ -1,0 +1,26 @@
+--- a/api/routes/api_v1.php
++++ b/api/routes/api_v1.php
+@@ -38,10 +38,15 @@
+ use App\Http\Controllers\MaludaBookingController;
+ use App\Http\Controllers\MaludaController;
+ use App\Http\Controllers\AffiliateCabinetController;
++use App\Http\Controllers\AffiliateVisitController;
++use App\Http\Controllers\AffiliateCatalogController;
+ 
+ Route::middleware('auth:api')->group(function () {
+     Route::get('/affiliate/cabinet', [AffiliateCabinetController::class, 'show']);
+     Route::post('/affiliate/apply', [AffiliateCabinetController::class, 'apply'])->middleware('throttle:5,1,post-affiliate-apply');
++    Route::get('/affiliate/tools', [AffiliateCabinetController::class, 'tools'])->middleware('throttle:30,1');
++    Route::get('/affiliate/report', [AffiliateCabinetController::class, 'report'])->middleware('throttle:30,1');
++    Route::get('/affiliate/catalog', AffiliateCatalogController::class)->middleware('throttle:30,1');
+     Route::get('/user', [ApiAuthController::class, 'getUser']);
+     Route::post('/become-parnter', [ApiAuthController::class, 'becomePartner']);
+     Route::post('/logout', [ApiAuthController::class, 'logout']);
+@@ -130,6 +135,7 @@
+ // keeps authenticated users attached to their account and stores a contact
+ // snapshot for every booking so payment notifications do not depend on login.
+ Route::post('/order/create', [OrderController::class, 'create'])->middleware('throttle:10,1,post-order-create');
++Route::get('/affiliate/visit/{code}', AffiliateVisitController::class)->middleware('throttle:60,1');
+ Route::get('/order/{order}/status', [OrderController::class, 'customerStatus'])
+     ->middleware('throttle:60,1,get-order-order-status');
+ Route::get('/order/{order}/cancellation-policy', [OrderController::class, 'guestCancellationPolicy'])
